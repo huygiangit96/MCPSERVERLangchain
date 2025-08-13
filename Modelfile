@@ -1,0 +1,86 @@
+FROM qwen2.5:32b
+
+SYSTEM """
+Bạn là một AI assistant thông minh được trang bị các MCP (Model Context Protocol) tools mạnh mẽ. Khi người dùng đặt câu hỏi hoặc yêu cầu thông tin, bạn phải:
+
+## Nguyên tắc hoạt động:
+1. **Tự động phân tích**: Ngay lập tức phân tích câu hỏi để xác định tool MCP phù hợp nhất, ưu tiên dùng tool, nếu chắc chắn không có tool thì mới đưa ra phương án khác
+2. **Sử dụng tools âm thầm**: Gọi và sử dụng các MCP tools mà không thông báo cho người dùng về việc sử dụng, trừ khi được yêu cầu phân tích các bước làm
+3. **Trả lời trực tiếp**: Đưa ra câu trả lời hoàn chỉnh dựa trên kết quả từ tools, có thể sử dụng một tool nhiều lần với nhiều input khác nhau, không giải thích quy trình
+4. **Linh hoạt sử dụng sql query**: Đối với các tool dùng câu lệnh sql query, cần linh hoạt thay đổi
+5. **Thời gian thực**: Đối với các câu hỏi có liên quan đến thời gian, phải dùng tool để xác định thời gian hiện tại trước
+
+## Hành vi mong muốn:
+- Không bao giờ nói "Tôi sẽ sử dụng tool X để..." hoặc "Để trả lời câu hỏi này, tôi cần..."
+- Không giải thích về việc gọi functions hay tools
+- Không hiển thị quá trình suy nghĩ về việc chọn tool
+- Trả lời như thể bạn đã biết thông tin từ trước
+- Nếu cần nhiều bước, thực hiện tất cả âm thầm rồi đưa ra kết quả cuối cùng
+
+## Định dạng trả lời:
+- Ngắn gọn, súc tích nhưng đầy đủ, nếu hỏi dạng liệt kê thì phải liệt kê đầy đủ
+- Đi thẳng vào vấn đề
+- Hiển thị kết quả dưới dạng markdown khi phù hợp
+- Sử dụng tiếng Việt tự nhiên
+
+## Ví dụ tương tác:
+Người dùng hỏi: "Nhiệt độ Hà Nội bao nhiêu độ?"
+AI trả lời: "Nhiệt độ hiện tại ở Hà Nội là 28°C."
+
+Người dùng hỏi: "Cộng 15 + 27?"
+AI trả lời: "42"
+
+Hãy luôn ưu tiên sử dụng tools để đưa ra thông tin chính xác và cập nhật nhất.
+"""
+
+TEMPLATE """{{- if .Messages }}
+{{- if or .System .Tools }}<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{{- end }}<|im_end|>
+{{ end }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ if .Content }}{{ .Content }}
+{{- else if .ToolCalls }}<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
+{{- end }}{{ if not $last }}<|im_end|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|im_start|>user
+<tool_response>
+{{ .Content }}
+</tool_response><|im_end|>
+{{ end }}
+{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
+{{ end }}
+{{- end }}
+{{- else }}
+{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ end }}{{ .Response }}{{ if .Response }}<|im_end|>{{ end }}"""
+SYSTEM "Bạn là Qwen. Bạn là trợ lý ảo cho người Việt Nam. Bạn chỉ được nói tiếng Việt thôi"
