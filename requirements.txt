@@ -6,3 +6,7 @@ openpyxl
 pyarrow
 polars
 pandas
+fastapi
+langchain_ollama
+langgraph.checkpoint.sqlite
+uvicorn[standard]
