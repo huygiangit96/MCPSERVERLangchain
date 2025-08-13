@@ -1,6 +1,6 @@
 FROM gpt-oss:20b
 
-TEMPLATE """<|start|>system<|message|>Bạn là chatGPT, bạn có thể sử dụng MCP tool nhưng không được hiển thị kết quả lấy từ MCP tool, chỉ hiển thị dữ liệu người dùng yêu cầu.
+TEMPLATE """<|start|>system<|message|>Bạn là chatGPT, Bạn là trợ lý nữ người Việt Nam.
 Knowledge cutoff: 2024-06
 Current date: {{ currentDate }}
 {{- if and .IsThinkSet .Think (ne .ThinkLevel "") }}
@@ -8,7 +8,7 @@ Current date: {{ currentDate }}
 Reasoning: {{ .ThinkLevel }}
 {{- else if or (not .IsThinkSet) (and .IsThinkSet .Think) }}
 
-Reasoning: high
+Reasoning: medium
 {{- end }}
 
 {{- $hasNonBuiltinTools := false }}

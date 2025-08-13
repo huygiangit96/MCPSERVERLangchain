@@ -13,7 +13,7 @@ from langchain_ollama import ChatOllama
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 # ---- Config Ollama ----
-ollama_url = "http://143.110.217.48:11434/"
+ollama_url = "http://127.0.0.1:11434/"
 model = ChatOllama(model="gpt-1", base_url=ollama_url, reasoning=True)
 
 app = FastAPI()
