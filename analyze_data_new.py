@@ -295,7 +295,7 @@ def analyze_case_data(
     markdown_table = "\n".join([header_row, separator_row] + rows)
 
     # Bọc trong code block + thêm dòng trống tách biệt
-    return f"\n{markdown_table}\n\n"
+    return f"_tool_ \n{markdown_table}\n\n _end_tool_"
 
 
 @mcp.tool()
@@ -345,7 +345,7 @@ def analyze_email_data(
             formatted_row.append(str(val))
         rows.append("| " + " | ".join(formatted_row) + " |")
 
-    return "\n".join([header_row, separator_row] + rows)
+    return "_tool_" + "\n".join([header_row, separator_row] + rows) + "_end_tool_"
 
 
 @mcp.tool()
@@ -359,10 +359,17 @@ def get_schema_case_data(
             sheet_name: Tên sheet người dùng muốn lấy dữ liệu
     """
     schema = GetDataSheet(sheet_name).schema
-    schema_dict = {}
-    for key, value in schema.items():
-        schema_dict[key] = value
-    return schema_dict
+
+    if not schema:
+        return "Không tìm thấy schema."
+
+    # Markdown header
+    header = "| Column Name | Data Type |\n| --- | --- |"
+
+    # Các dòng dữ liệu
+    rows = [f"| {col} | {dtype} |" for col, dtype in schema.items()]
+
+    return "_tool_" + "\n".join([header] + rows) + "_end_tool_"
 
 @mcp.tool()
 def get_schema_email_data() -> List[Dict[str, Any]]:
@@ -371,10 +378,21 @@ def get_schema_email_data() -> List[Dict[str, Any]]:
     """
     df = pl.read_csv("mail.csv")
     schema = df.schema
-    schema_dict = {}
-    for key, value in schema.items():
-        schema_dict[key] = value
-    return schema_dict
+
+    if not schema:
+        return "Không tìm thấy schema."
+
+    # Header Markdown
+    header = "| Column Name | Data Type |\n| --- | --- |"
+    rows = []
+
+    for col, dtype in schema.items():
+        dtype_str = str(dtype)
+        if "Date" in dtype_str or "Datetime" in dtype_str:
+            dtype_str += " (dd/MM/yyyy)"
+        rows.append(f"| {col} | {dtype_str} |")
+
+    return "_tool_" + "\n".join([header] + rows) + "_end_tool_"
 
 # @mcp.tool()
 # def get_list_sheet_name() -> Dict:
@@ -398,7 +416,7 @@ def get_list_sheet_name() -> str:
     rows = [f"| {i} | {name} |" for i, name in enumerate(sheet_names)]
     markdown_table = "\n".join([header] + rows)
 
-    return f"\n{markdown_table}\n\n"
+    return "_tool_" + f"\n{markdown_table}\n\n" + "_end_tool_"
 
 @mcp.tool()
 def get_current_time() -> str:
@@ -408,7 +426,7 @@ def get_current_time() -> str:
     Returns:
         str: Thời gian hiện tại
     """
-    return datetime.now().strftime("%H:%M:%S %d-%m-%Y")
+    return "_tool_" + datetime.now().strftime("%H:%M:%S %d-%m-%Y") + "_end_tool_"
 
 
 @mcp.tool()
@@ -425,7 +443,7 @@ def get_current_time_with_timezone(timezone: str = "UTC") -> str:
     try:
         tz = pytz.timezone(timezone)
         current_time = datetime.now(tz)
-        return current_time.strftime("%H:%M:%S %d-%m-%Y %Z")
+        return "_tool_" + current_time.strftime("%H:%M:%S %d-%m-%Y %Z") + "_end_tool_"
     except pytz.exceptions.UnknownTimeZoneError:
         return f"Múi giờ không hợp lệ: {timezone}"
 
